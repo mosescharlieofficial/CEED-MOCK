@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEED Mock Test – Anti‑Screenshot Protection</title>
+    <title>CEED Mock Test – Full Protection (Only Numbers)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -217,6 +217,19 @@
 </footer>
 
 <script>
+    // ==================== DISABLE ALL KEYS EXCEPT NUMBERS ====================
+    (function() {
+        document.addEventListener('keydown', function(e) {
+            const key = e.key;
+            // Allow only number keys (0-9 from main keyboard and numpad)
+            const isDigit = (key >= '0' && key <= '9') || key.startsWith('Numpad');
+            if (!isDigit) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    })();
+
     // ==================== ANTI-SCREENSHOT MEASURES ====================
     (function() {
         const protector = document.getElementById('screen-protector');
