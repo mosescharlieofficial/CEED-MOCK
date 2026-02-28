@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEED Mock Test – Full Protection with Siren</title>
+    <title>CEED Mock Test – Full Protection with Continuous Siren</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -217,23 +217,30 @@
 </footer>
 
 <script>
-    // ==================== SIREN SOUND FOR CHEATING ATTEMPTS ====================
+    // ==================== SIREN SOUND SYSTEM ====================
     (function() {
         let audioContext = null;
-        let playSiren = null;
+        // For short burst siren
+        let playShortSiren = null;
+        // For continuous loop
+        let loopActive = false;
+        let loopGain = null;
+        let loopOscillators = [];
 
         // Initialize audio on first user click (to comply with autoplay policies)
         function initAudio() {
             if (audioContext) return;
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            playSiren = function() {
+            
+            // Short burst siren (0.5 sec)
+            playShortSiren = function() {
                 if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => createSiren());
+                    audioContext.resume().then(() => createShortSiren());
                 } else {
-                    createSiren();
+                    createShortSiren();
                 }
             };
-            function createSiren() {
+            function createShortSiren() {
                 const now = audioContext.currentTime;
                 const osc1 = audioContext.createOscillator();
                 const osc2 = audioContext.createOscillator();
@@ -252,87 +259,141 @@
                 osc1.stop(now + 0.5);
                 osc2.stop(now + 0.5);
             }
+
+            // Continuous loop function
+            window.startContinuousSiren = function() {
+                if (!audioContext) return;
+                if (loopActive) return;
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        createContinuousSiren();
+                    });
+                } else {
+                    createContinuousSiren();
+                }
+            };
+
+            window.stopContinuousSiren = function() {
+                if (!loopActive) return;
+                loopActive = false;
+                // Stop all oscillators
+                loopOscillators.forEach(osc => {
+                    try { osc.stop(); } catch (e) {}
+                });
+                loopOscillators = [];
+                if (loopGain) {
+                    loopGain.disconnect();
+                    loopGain = null;
+                }
+            };
+
+            function createContinuousSiren() {
+                if (loopActive) return;
+                loopActive = true;
+                
+                // Create a gain node for volume control (and to optionally fade out)
+                loopGain = audioContext.createGain();
+                loopGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                loopGain.connect(audioContext.destination);
+
+                // Create two oscillators for a siren-like effect
+                const osc1 = audioContext.createOscillator();
+                const osc2 = audioContext.createOscillator();
+                osc1.type = 'sawtooth';
+                osc2.type = 'sawtooth';
+                
+                // Frequency modulation for "siren" effect: sweep up and down
+                // Use a periodic wave or LFO? Simple: set frequencies and let them run.
+                // We'll make them alternate by using a simple ramp, but for continuous we can just set two constant frequencies that are dissonant.
+                osc1.frequency.value = 800;
+                osc2.frequency.value = 1000;
+                
+                osc1.connect(loopGain);
+                osc2.connect(loopGain);
+                
+                osc1.start();
+                osc2.start();
+                
+                loopOscillators = [osc1, osc2];
+            }
+
             // Remove the click listener once initialized
             document.removeEventListener('click', initAudio);
         }
         document.addEventListener('click', initAudio);
 
-        // Function to play siren (safe to call even before initialization)
-        function triggerSiren() {
-            if (playSiren) {
-                playSiren();
+        // Function to trigger short siren (for key presses, right-click, etc.)
+        function triggerShortSiren() {
+            if (playShortSiren) {
+                playShortSiren();
             } else {
-                // If audio not ready, we can optionally store the attempt to play later
-                // but we'll just try to init and play (requires click)
-                if (!audioContext) {
-                    // Attempt immediate init? Not possible without user interaction.
-                    // So we do nothing, but the user hasn't clicked yet, so no cheat sound.
-                }
+                // If audio not ready, attempt to init on next click (user hasn't clicked yet)
             }
         }
 
         // ==================== CHEAT DETECTION ====================
-        // Disable all keys except numbers (already in your code) – we'll enhance it to play siren
+        const protector = document.getElementById('screen-protector');
+
+        // Disable all keys except numbers – with short siren
         document.addEventListener('keydown', function(e) {
             const key = e.key;
             const isDigit = (key >= '0' && key <= '9') || key.startsWith('Numpad');
             if (!isDigit) {
                 e.preventDefault();
                 e.stopPropagation();
-                triggerSiren(); // Play siren for any forbidden key
+                triggerShortSiren();
             }
         });
 
-        // Right-click prevention (already on image) – also play siren on whole document
+        // Right-click prevention – with short siren
         document.addEventListener('contextmenu', function(e) {
-            // Allow context menu on input fields? Probably not needed.
             e.preventDefault();
-            triggerSiren();
+            triggerShortSiren();
             return false;
         });
 
-        // Window/tab switch detection
-        const protector = document.getElementById('screen-protector');
+        // Window/tab switch detection – continuous siren
         window.addEventListener('blur', () => {
             protector.classList.add('show');
-            triggerSiren();
+            if (window.startContinuousSiren) window.startContinuousSiren();
         });
         window.addEventListener('focus', () => {
             protector.classList.remove('show');
+            if (window.stopContinuousSiren) window.stopContinuousSiren();
         });
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 protector.classList.add('show');
-                triggerSiren();
+                if (window.startContinuousSiren) window.startContinuousSiren();
             } else {
                 protector.classList.remove('show');
+                if (window.stopContinuousSiren) window.stopContinuousSiren();
             }
         });
 
-        // PrintScreen and screenshot shortcuts
+        // PrintScreen and screenshot shortcuts – short siren + black overlay
         document.addEventListener('keydown', (e) => {
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
                 e.preventDefault();
                 protector.classList.add('show');
-                triggerSiren();
+                triggerShortSiren();
                 setTimeout(() => protector.classList.remove('show'), 500);
             }
             if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
                 e.preventDefault();
                 protector.classList.add('show');
-                triggerSiren();
+                triggerShortSiren();
                 setTimeout(() => protector.classList.remove('show'), 500);
             }
         });
 
-        // Also play siren when black overlay appears (already triggered above, but keep)
-        // Optionally, play siren on copy/cut events (though keys are blocked)
-        document.addEventListener('copy', (e) => { e.preventDefault(); triggerSiren(); });
-        document.addEventListener('cut', (e) => { e.preventDefault(); triggerSiren(); });
-        document.addEventListener('paste', (e) => { e.preventDefault(); triggerSiren(); });
+        // Copy/cut/paste – short siren (though keys are blocked)
+        document.addEventListener('copy', (e) => { e.preventDefault(); triggerShortSiren(); });
+        document.addEventListener('cut', (e) => { e.preventDefault(); triggerShortSiren(); });
+        document.addEventListener('paste', (e) => { e.preventDefault(); triggerShortSiren(); });
     })();
 
-    // ==================== MAIN APP CODE (unchanged from your original) ====================
+    // ==================== MAIN APP CODE (unchanged) ====================
     // ----- SECTION DEFINITIONS -----
     const sections = [
         { name: 'NAT', count: 8, start: 1, end: 8 },
