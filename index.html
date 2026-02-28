@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEED Mock Test – Maximum Image Protection</title>
+    <title>CEED Mock Test – Anti‑Screenshot Protection</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -16,7 +16,12 @@
             --current: #3498db;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; overflow: hidden; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            background-color: #f0f2f5; 
+            overflow: hidden; 
+        }
         
         /* Header Section */
         header { 
@@ -117,9 +122,28 @@
         .btn-green:hover { background: #219150; }
 
         .section-divider { font-size: 0.7rem; text-align: center; margin: 5px 0; color: #555; }
+
+        /* Anti-screenshot overlay */
+        #screen-protector {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 9999;
+            display: none;
+            pointer-events: none;
+            opacity: 0.95;
+        }
+        #screen-protector.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
+    <!-- Black overlay for screenshot prevention -->
+    <div id="screen-protector"></div>
 
 <header>
     <div class="test-title">CEED 2025 - Part A (44 Q)</div>
@@ -193,6 +217,53 @@
 </footer>
 
 <script>
+    // ==================== ANTI-SCREENSHOT MEASURES ====================
+    (function() {
+        const protector = document.getElementById('screen-protector');
+
+        // Show black overlay when window loses focus (user switches to another app)
+        window.addEventListener('blur', () => {
+            protector.classList.add('show');
+        });
+
+        // Hide when window regains focus
+        window.addEventListener('focus', () => {
+            protector.classList.remove('show');
+        });
+
+        // Also detect visibility change (tab switch)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                protector.classList.add('show');
+            } else {
+                protector.classList.remove('show');
+            }
+        });
+
+        // Attempt to block PrintScreen key (works in some browsers)
+        document.addEventListener('keydown', (e) => {
+            // PrtScr key code is 44, but many browsers don't trigger keydown for it.
+            // We also block common screenshot shortcuts: Ctrl+Shift+3 (macOS), Ctrl+Shift+4, Cmd+Shift+3, Cmd+Shift+4, etc.
+            if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
+                e.preventDefault();
+                protector.classList.add('show');
+                setTimeout(() => protector.classList.remove('show'), 500);
+            }
+            // Windows + Shift + S (snipping tool) – cannot block directly, but we can detect and obscure
+            // macOS: Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
+                e.preventDefault();
+                protector.classList.add('show');
+                setTimeout(() => protector.classList.remove('show'), 500);
+            }
+        });
+
+        // Additional: if user tries to use browser's "Take screenshot" (some browsers have that)
+        // Not much we can do, but we can try to detect DevTools opening (not reliable)
+        // Optional: show warning on right-click (already done)
+    })();
+
+    // ==================== MAIN APP CODE ====================
     // ----- SECTION DEFINITIONS -----
     const sections = [
         { name: 'NAT', count: 8, start: 1, end: 8 },
@@ -507,14 +578,6 @@
     window.submitTest = submitTest;
     window.jumpToQuestion = jumpToQuestion;
     window.previousQuestion = previousQuestion;
-
-    // Optional: disable right-click on whole page (adds another layer)
-    document.addEventListener('contextmenu', (e) => {
-        if (e.target.closest('.image-placeholder')) {
-            e.preventDefault();
-        }
-    });
 </script>
-
 </body>
 </html>
