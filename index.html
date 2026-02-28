@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEED Mock Test – Section‑wise Palette (with images & Previous)</title>
+    <title>CEED Mock Test – Maximum Image Protection</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -39,7 +39,7 @@
         .question-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: #555; }
         .question-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px; font-weight: 500; }
         
-        /* Image placeholder now acts as a flexible container for actual images */
+        /* Image placeholder – with full protection */
         .image-placeholder { 
             width: 100%; max-width: 500px; height: 300px; 
             background: #f9f9f9; border: 2px dashed #bbb; 
@@ -48,17 +48,26 @@
             align-items: center; 
             justify-content: center; 
             color: #888;
-            overflow: hidden;   /* ensures image doesn't overflow rounded corners (if any) */
+            overflow: hidden;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .image-placeholder img {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
             display: block;
+            pointer-events: auto;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
-        /* fallback icon styling (used if image fails) */
         .image-placeholder .fallback {
             text-align: center;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         /* Answer area - neutral container */
@@ -135,8 +144,8 @@
                 [NAT] What is the shortest distance (in cm) for the red dot to reach x? (grid lines)
             </p>
             
-            <!-- IMAGE PLACEHOLDER: now dynamically updated with <img> from folder 2025/ -->
-            <div class="image-placeholder" id="q-image">
+            <!-- IMAGE PLACEHOLDER: protected images loaded via blob URL -->
+            <div class="image-placeholder" id="q-image" oncontextmenu="return false;">
                 <!-- content replaced by JavaScript -->
                 <i class="fa-solid fa-border-all fa-4x"></i>
                 <p>[Loading image...]</p>
@@ -176,7 +185,7 @@
         <button class="btn btn-gray" onclick="clearResponse()">Clear Response</button>
     </div>
     <div>
-        <!-- Previous button added before Save & Next -->
+        <!-- Previous button -->
         <button class="btn btn-gray" onclick="previousQuestion()">Previous</button>
         <button class="btn btn-blue" onclick="saveNext()">Save & Next</button>
         <button class="btn btn-green" onclick="submitTest()">Submit</button>
@@ -200,6 +209,9 @@
     let visited = new Array(TOTAL_QS).fill(false);
     visited[0] = true;  // first question visited
 
+    // Store object URLs to revoke later (memory management)
+    let currentObjectUrl = null;
+
     // ----- HELPER: get section index from question number -----
     function getSectionByQNum(qNum) {
         if (qNum <= 8) return 0;
@@ -207,33 +219,69 @@
         else return 2;
     }
 
-    // ----- load image for current question -----
+    // ----- load image for current question using fetch + blob (hide file path) -----
     function updateQuestionImage() {
         const imgContainer = document.getElementById('q-image');
         if (!imgContainer) return;
-        
+
+        // Revoke previous object URL to free memory
+        if (currentObjectUrl) {
+            URL.revokeObjectURL(currentObjectUrl);
+            currentObjectUrl = null;
+        }
+
         const imgPath = `2025/${currentQ}.png`;  // images stored in subfolder "2025"
         
-        // Create a new image element
-        const img = new Image();
-        img.onload = function() {
-            // Clear container and append loaded image
-            imgContainer.innerHTML = '';
-            imgContainer.appendChild(img);
-        };
-        img.onerror = function() {
-            // If image fails, show a fallback with icon and message
-            imgContainer.innerHTML = `
-                <div class="fallback">
-                    <i class="fa-solid fa-border-all fa-4x"></i>
-                    <p>Image not found (${imgPath})</p>
-                    <small>Please check folder '2025'</small>
-                </div>
-            `;
-        };
-        img.src = imgPath;
-        img.alt = `Question ${currentQ} diagram`;
-        // style is handled by CSS .image-placeholder img
+        // Show loading state
+        imgContainer.innerHTML = `<i class="fa-solid fa-border-all fa-4x"></i><p>[Loading image...]</p>`;
+
+        // Fetch the image as a blob
+        fetch(imgPath)
+            .then(response => {
+                if (!response.ok) throw new Error('Image not found');
+                return response.blob();
+            })
+            .then(blob => {
+                // Create an object URL from the blob
+                const objectUrl = URL.createObjectURL(blob);
+                currentObjectUrl = objectUrl;
+
+                // Create image element
+                const img = new Image();
+                img.onload = function() {
+                    // Clear container and append loaded image
+                    imgContainer.innerHTML = '';
+                    imgContainer.appendChild(img);
+                    
+                    // Apply protection attributes
+                    img.setAttribute('draggable', 'false');
+                    img.oncontextmenu = (e) => { e.preventDefault(); return false; };
+                    img.style.pointerEvents = 'auto';
+                };
+                img.onerror = function() {
+                    // Fallback if blob fails (unlikely)
+                    imgContainer.innerHTML = `
+                        <div class="fallback" oncontextmenu="return false;">
+                            <i class="fa-solid fa-border-all fa-4x"></i>
+                            <p>Failed to load image</p>
+                        </div>
+                    `;
+                };
+                img.src = objectUrl;
+                img.alt = `Question ${currentQ} diagram`;
+                img.draggable = false;
+                img.oncontextmenu = (e) => { e.preventDefault(); return false; };
+            })
+            .catch(error => {
+                // Image not found or fetch error
+                imgContainer.innerHTML = `
+                    <div class="fallback" oncontextmenu="return false;">
+                        <i class="fa-solid fa-border-all fa-4x"></i>
+                        <p>Image not found (${imgPath})</p>
+                        <small>Please check folder '2025'</small>
+                    </div>
+                `;
+            });
     }
 
     // ----- RENDER QUESTION (text, image, answer area) based on currentQ -----
@@ -384,14 +432,13 @@
         }
     }
 
-    // ----- NEW: PREVIOUS QUESTION -----
+    // ----- PREVIOUS QUESTION -----
     function previousQuestion() {
         captureCurrentAnswer();  // save current answer before moving back
         if (currentQ > 1) {
             jumpToQuestion(currentQ - 1);
         } else {
-            // Optionally alert or do nothing (already at first question)
-            // alert("You are at the first question.");
+            // Already at first question, do nothing
         }
     }
 
@@ -453,7 +500,7 @@
 
     init();
 
-    // Expose functions globally (including new previousQuestion)
+    // Expose functions globally
     window.saveNext = saveNext;
     window.markReview = markReview;
     window.clearResponse = clearResponse;
@@ -461,6 +508,12 @@
     window.jumpToQuestion = jumpToQuestion;
     window.previousQuestion = previousQuestion;
 
+    // Optional: disable right-click on whole page (adds another layer)
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.closest('.image-placeholder')) {
+            e.preventDefault();
+        }
+    });
 </script>
 
 </body>
