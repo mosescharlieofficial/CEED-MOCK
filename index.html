@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEED Mock Test – Full Protection (Only Numbers)</title>
+    <title>CEED Mock Test – Full Protection with Siren</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -217,66 +217,122 @@
 </footer>
 
 <script>
-    // ==================== DISABLE ALL KEYS EXCEPT NUMBERS ====================
+    // ==================== SIREN SOUND FOR CHEATING ATTEMPTS ====================
     (function() {
+        let audioContext = null;
+        let playSiren = null;
+
+        // Initialize audio on first user click (to comply with autoplay policies)
+        function initAudio() {
+            if (audioContext) return;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            playSiren = function() {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => createSiren());
+                } else {
+                    createSiren();
+                }
+            };
+            function createSiren() {
+                const now = audioContext.currentTime;
+                const osc1 = audioContext.createOscillator();
+                const osc2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                osc1.type = 'sawtooth';
+                osc2.type = 'sawtooth';
+                osc1.frequency.value = 800;
+                osc2.frequency.value = 1000;
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+                osc1.connect(gainNode);
+                osc2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.5);
+                osc2.stop(now + 0.5);
+            }
+            // Remove the click listener once initialized
+            document.removeEventListener('click', initAudio);
+        }
+        document.addEventListener('click', initAudio);
+
+        // Function to play siren (safe to call even before initialization)
+        function triggerSiren() {
+            if (playSiren) {
+                playSiren();
+            } else {
+                // If audio not ready, we can optionally store the attempt to play later
+                // but we'll just try to init and play (requires click)
+                if (!audioContext) {
+                    // Attempt immediate init? Not possible without user interaction.
+                    // So we do nothing, but the user hasn't clicked yet, so no cheat sound.
+                }
+            }
+        }
+
+        // ==================== CHEAT DETECTION ====================
+        // Disable all keys except numbers (already in your code) – we'll enhance it to play siren
         document.addEventListener('keydown', function(e) {
             const key = e.key;
-            // Allow only number keys (0-9 from main keyboard and numpad)
             const isDigit = (key >= '0' && key <= '9') || key.startsWith('Numpad');
             if (!isDigit) {
                 e.preventDefault();
                 e.stopPropagation();
+                triggerSiren(); // Play siren for any forbidden key
             }
         });
-    })();
 
-    // ==================== ANTI-SCREENSHOT MEASURES ====================
-    (function() {
-        const protector = document.getElementById('screen-protector');
-
-        // Show black overlay when window loses focus (user switches to another app)
-        window.addEventListener('blur', () => {
-            protector.classList.add('show');
+        // Right-click prevention (already on image) – also play siren on whole document
+        document.addEventListener('contextmenu', function(e) {
+            // Allow context menu on input fields? Probably not needed.
+            e.preventDefault();
+            triggerSiren();
+            return false;
         });
 
-        // Hide when window regains focus
+        // Window/tab switch detection
+        const protector = document.getElementById('screen-protector');
+        window.addEventListener('blur', () => {
+            protector.classList.add('show');
+            triggerSiren();
+        });
         window.addEventListener('focus', () => {
             protector.classList.remove('show');
         });
-
-        // Also detect visibility change (tab switch)
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 protector.classList.add('show');
+                triggerSiren();
             } else {
                 protector.classList.remove('show');
             }
         });
 
-        // Attempt to block PrintScreen key (works in some browsers)
+        // PrintScreen and screenshot shortcuts
         document.addEventListener('keydown', (e) => {
-            // PrtScr key code is 44, but many browsers don't trigger keydown for it.
-            // We also block common screenshot shortcuts: Ctrl+Shift+3 (macOS), Ctrl+Shift+4, Cmd+Shift+3, Cmd+Shift+4, etc.
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
                 e.preventDefault();
                 protector.classList.add('show');
+                triggerSiren();
                 setTimeout(() => protector.classList.remove('show'), 500);
             }
-            // Windows + Shift + S (snipping tool) – cannot block directly, but we can detect and obscure
-            // macOS: Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5
             if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
                 e.preventDefault();
                 protector.classList.add('show');
+                triggerSiren();
                 setTimeout(() => protector.classList.remove('show'), 500);
             }
         });
 
-        // Additional: if user tries to use browser's "Take screenshot" (some browsers have that)
-        // Not much we can do, but we can try to detect DevTools opening (not reliable)
-        // Optional: show warning on right-click (already done)
+        // Also play siren when black overlay appears (already triggered above, but keep)
+        // Optionally, play siren on copy/cut events (though keys are blocked)
+        document.addEventListener('copy', (e) => { e.preventDefault(); triggerSiren(); });
+        document.addEventListener('cut', (e) => { e.preventDefault(); triggerSiren(); });
+        document.addEventListener('paste', (e) => { e.preventDefault(); triggerSiren(); });
     })();
 
-    // ==================== MAIN APP CODE ====================
+    // ==================== MAIN APP CODE (unchanged from your original) ====================
     // ----- SECTION DEFINITIONS -----
     const sections = [
         { name: 'NAT', count: 8, start: 1, end: 8 },
