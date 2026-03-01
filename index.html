@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEED Mock Test – Full Protection with Continuous Siren</title>
+    <!-- Disable zoom on mobile and desktop -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CEED Mock Test – Full Protection (60 min)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -14,6 +15,17 @@
             --marked: #8e44ad;
             --not-visited: #ffffff;
             --current: #3498db;
+        }
+
+        /* Global text selection prevention (except inputs) */
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        input, textarea {
+            -webkit-user-select: auto;
+            user-select: auto;
         }
 
         body { 
@@ -44,9 +56,11 @@
         .question-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: #555; }
         .question-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px; font-weight: 500; }
         
-        /* Image placeholder – with full protection */
+        /* Image placeholder – increased width by 50px */
         .image-placeholder { 
-            width: 100%; max-width: 500px; height: 300px; 
+            width: 100%; 
+            max-width: 550px;  /* Increased from 500px to 550px */
+            height: 300px; 
             background: #f9f9f9; border: 2px dashed #bbb; 
             margin: 20px 0; 
             display: flex; 
@@ -54,9 +68,6 @@
             justify-content: center; 
             color: #888;
             overflow: hidden;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
         }
         .image-placeholder img {
             max-width: 100%;
@@ -64,15 +75,9 @@
             object-fit: contain;
             display: block;
             pointer-events: auto;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
         }
         .image-placeholder .fallback {
             text-align: center;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
         }
 
         /* Answer area - neutral container */
@@ -147,7 +152,7 @@
 
 <header>
     <div class="test-title">CEED 2025 - Part A (44 Q)</div>
-    <div class="timer" id="timer">79:54</div>
+    <div class="timer" id="timer">60:00</div>
 </header>
 
 <div class="main-container">
@@ -160,7 +165,7 @@
 
         <div class="question-meta">
             <span id="q-num-display"><strong>Question No. 1 (NAT)</strong></span>
-            <span id="marks-display">Marks: 3 | Neg: 0</span>
+            <span id="marks-display">Marks: 4 | Neg: 0</span> <!-- Default updated later -->
         </div>
 
         <div id="question-content">
@@ -217,6 +222,24 @@
 </footer>
 
 <script>
+    // ==================== ADDITIONAL PROTECTIONS ====================
+    // 1. Disable pinch zoom and Ctrl+wheel zoom
+    document.addEventListener('wheel', function(e) {
+        if (e.ctrlKey) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    document.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+    });
+
+    // 2. Warn before page reload/close (prevent accidental progress loss)
+    window.addEventListener('beforeunload', function (e) {
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to reload? Your progress will be lost.';
+        return 'Are you sure you want to reload? Your progress will be lost.';
+    });
+
     // ==================== SIREN SOUND SYSTEM ====================
     (function() {
         let audioContext = null;
@@ -291,7 +314,7 @@
                 if (loopActive) return;
                 loopActive = true;
                 
-                // Create a gain node for volume control (and to optionally fade out)
+                // Create a gain node for volume control
                 loopGain = audioContext.createGain();
                 loopGain.gain.setValueAtTime(0.1, audioContext.currentTime);
                 loopGain.connect(audioContext.destination);
@@ -301,10 +324,6 @@
                 const osc2 = audioContext.createOscillator();
                 osc1.type = 'sawtooth';
                 osc2.type = 'sawtooth';
-                
-                // Frequency modulation for "siren" effect: sweep up and down
-                // Use a periodic wave or LFO? Simple: set frequencies and let them run.
-                // We'll make them alternate by using a simple ramp, but for continuous we can just set two constant frequencies that are dissonant.
                 osc1.frequency.value = 800;
                 osc2.frequency.value = 1000;
                 
@@ -326,8 +345,6 @@
         function triggerShortSiren() {
             if (playShortSiren) {
                 playShortSiren();
-            } else {
-                // If audio not ready, attempt to init on next click (user hasn't clicked yet)
             }
         }
 
@@ -387,14 +404,13 @@
             }
         });
 
-        // Copy/cut/paste – short siren (though keys are blocked)
+        // Copy/cut/paste – short siren
         document.addEventListener('copy', (e) => { e.preventDefault(); triggerShortSiren(); });
         document.addEventListener('cut', (e) => { e.preventDefault(); triggerShortSiren(); });
         document.addEventListener('paste', (e) => { e.preventDefault(); triggerShortSiren(); });
     })();
 
-    // ==================== MAIN APP CODE (unchanged) ====================
-    // ----- SECTION DEFINITIONS -----
+    // ==================== MAIN APP CODE ====================
     const sections = [
         { name: 'NAT', count: 8, start: 1, end: 8 },
         { name: 'MSQ', count: 10, start: 9, end: 18 },
@@ -402,65 +418,52 @@
     ];
     const TOTAL_QS = 44;
 
-    // ----- STATE -----
-    let currentQ = 1;                 // 1-indexed
-    let currentSectionIdx = 0;        // 0: NAT, 1: MSQ, 2: MCQ
-    let responses = new Array(TOTAL_QS).fill(null);    // store string for NAT, array for MSQ, string for MCQ (simplified)
+    let currentQ = 1;
+    let currentSectionIdx = 0;
+    let responses = new Array(TOTAL_QS).fill(null);
     let marked = new Array(TOTAL_QS).fill(false);
     let visited = new Array(TOTAL_QS).fill(false);
-    visited[0] = true;  // first question visited
+    visited[0] = true;
 
-    // Store object URLs to revoke later (memory management)
     let currentObjectUrl = null;
 
-    // ----- HELPER: get section index from question number -----
     function getSectionByQNum(qNum) {
         if (qNum <= 8) return 0;
         else if (qNum <= 18) return 1;
         else return 2;
     }
 
-    // ----- load image for current question using fetch + blob (hide file path) -----
     function updateQuestionImage() {
         const imgContainer = document.getElementById('q-image');
         if (!imgContainer) return;
 
-        // Revoke previous object URL to free memory
         if (currentObjectUrl) {
             URL.revokeObjectURL(currentObjectUrl);
             currentObjectUrl = null;
         }
 
-        const imgPath = `2025/${currentQ}.png`;  // images stored in subfolder "2025"
+        const imgPath = `2025/${currentQ}.png`;
         
-        // Show loading state
         imgContainer.innerHTML = `<i class="fa-solid fa-border-all fa-4x"></i><p>[Loading image...]</p>`;
 
-        // Fetch the image as a blob
         fetch(imgPath)
             .then(response => {
                 if (!response.ok) throw new Error('Image not found');
                 return response.blob();
             })
             .then(blob => {
-                // Create an object URL from the blob
                 const objectUrl = URL.createObjectURL(blob);
                 currentObjectUrl = objectUrl;
 
-                // Create image element
                 const img = new Image();
                 img.onload = function() {
-                    // Clear container and append loaded image
                     imgContainer.innerHTML = '';
                     imgContainer.appendChild(img);
-                    
-                    // Apply protection attributes
                     img.setAttribute('draggable', 'false');
                     img.oncontextmenu = (e) => { e.preventDefault(); return false; };
                     img.style.pointerEvents = 'auto';
                 };
                 img.onerror = function() {
-                    // Fallback if blob fails (unlikely)
                     imgContainer.innerHTML = `
                         <div class="fallback" oncontextmenu="return false;">
                             <i class="fa-solid fa-border-all fa-4x"></i>
@@ -474,7 +477,6 @@
                 img.oncontextmenu = (e) => { e.preventDefault(); return false; };
             })
             .catch(error => {
-                // Image not found or fetch error
                 imgContainer.innerHTML = `
                     <div class="fallback" oncontextmenu="return false;">
                         <i class="fa-solid fa-border-all fa-4x"></i>
@@ -485,31 +487,31 @@
             });
     }
 
-    // ----- RENDER QUESTION (text, image, answer area) based on currentQ -----
     function renderQuestion() {
         const qNum = currentQ;
         const secIdx = getSectionByQNum(qNum);
         const section = sections[secIdx];
         const qWithin = qNum - section.start + 1;
 
-        // Update question number display
         document.getElementById('q-num-display').innerHTML = `<strong>Question No. ${qNum} (${section.name} ${qWithin}/${section.count})</strong>`;
 
-        // Dummy question text based on section (you can customize further)
         let baseText = '';
+        let marksDisplay = '';
         if (section.name === 'NAT') {
             baseText = `[NAT ${qWithin}] What is the numerical answer? (grid / geometry problem)`;
+            marksDisplay = 'Marks: 4 | Neg: 0';
         } else if (section.name === 'MSQ') {
             baseText = `[MSQ ${qWithin}] Which of the following options are correct? (Select all that apply)`;
-        } else {
+            marksDisplay = 'Marks: +4 / Partial | Neg: -1';
+        } else { // MCQ
             baseText = `[MCQ ${qWithin}] Choose the correct alternative from the following:`;
+            marksDisplay = 'Marks: 3 | Neg: -0.5';
         }
         document.getElementById('q-text').innerText = baseText;
+        document.getElementById('marks-display').innerHTML = marksDisplay;
 
-        // Update the image based on current question number
         updateQuestionImage();
 
-        // Generate answer area
         const answerContainer = document.getElementById('answer-area');
         const savedVal = responses[qNum-1];
 
@@ -525,7 +527,7 @@
             }
             html += '</div>';
             answerContainer.innerHTML = html;
-        } else { // MCQ
+        } else {
             let html = '<p><strong>Choose one:</strong></p><div class="mcq-group">';
             const opts = ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
             const checkedIndex = savedVal !== null && savedVal !== undefined ? parseInt(savedVal, 10) : -1;
@@ -536,11 +538,8 @@
             html += '</div>';
             answerContainer.innerHTML = html;
         }
-
-        document.getElementById('marks-display').innerHTML = 'Marks: 3 | Neg: 0';
     }
 
-    // ----- READ CURRENT ANSWER FROM UI INTO responses array -----
     function captureCurrentAnswer() {
         const qNum = currentQ;
         const secIdx = getSectionByQNum(qNum);
@@ -558,7 +557,7 @@
                 if (cb.checked) checkedVals.push(idx);
             });
             responses[qNum-1] = checkedVals.length ? checkedVals.join(',') : null;
-        } else { // MCQ
+        } else {
             const radios = document.querySelectorAll('.mcq-opt');
             let selectedVal = null;
             radios.forEach(r => { if (r.checked) selectedVal = r.value; });
@@ -566,7 +565,6 @@
         }
     }
 
-    // ----- RENDER PALETTE (only questions from current section) -----
     function renderPalette() {
         const palette = document.getElementById('palette');
         palette.innerHTML = '';
@@ -581,7 +579,6 @@
             
             if (i === currentQ) btn.classList.add('current');
             
-            // Apply status colors
             if (marked[i-1]) {
                 btn.classList.add('bg-marked');
             } else if (responses[i-1] !== null && responses[i-1] !== "") {
@@ -595,7 +592,7 @@
             btn.onclick = () => jumpToQuestion(i);
             palette.appendChild(btn);
         }
-        updateStats(); // global stats, but palette only shows current section
+        updateStats();
     }
 
     function updateStats() {
@@ -609,12 +606,10 @@
         document.getElementById('stat-marked').innerText = markedCount;
     }
 
-    // ----- JUMP TO QUESTION (updates currentQ, visited, UI) -----
     function jumpToQuestion(n) {
         currentQ = n;
         visited[n-1] = true;
         currentSectionIdx = getSectionByQNum(n);
-        // Update active tab in UI
         document.querySelectorAll('.tab').forEach((tab, idx) => {
             if (idx === currentSectionIdx) tab.classList.add('active');
             else tab.classList.remove('active');
@@ -623,40 +618,33 @@
         renderPalette();
     }
 
-    // ----- SAVE & NEXT -----
     function saveNext() {
         captureCurrentAnswer();
         if (currentQ < TOTAL_QS) {
             jumpToQuestion(currentQ + 1);
         } else {
-            renderPalette();  // stays on last question, just updates palette
+            renderPalette();
         }
     }
 
-    // ----- PREVIOUS QUESTION -----
     function previousQuestion() {
-        captureCurrentAnswer();  // save current answer before moving back
+        captureCurrentAnswer();
         if (currentQ > 1) {
             jumpToQuestion(currentQ - 1);
-        } else {
-            // Already at first question, do nothing
         }
     }
 
-    // ----- MARK FOR REVIEW & NEXT -----
     function markReview() {
         marked[currentQ-1] = !marked[currentQ-1];
         saveNext();
     }
 
-    // ----- CLEAR RESPONSE -----
     function clearResponse() {
         responses[currentQ-1] = null;
         renderQuestion();
         renderPalette();
     }
 
-    // ----- SUBMIT (simple confirm) -----
     function submitTest() {
         if (confirm("Are you sure you want to submit your CEED Mock Test?")) {
             alert("Submission demo. Responses recorded in console.");
@@ -664,7 +652,6 @@
         }
     }
 
-    // ----- SECTION TAB CLICK HANDLER -----
     function setupTabs() {
         const tabs = document.querySelectorAll('.tab');
         tabs.forEach((tab, idx) => {
@@ -679,8 +666,8 @@
         });
     }
 
-    // ----- TIMER -----
-    let time = 79 * 60 + 54;
+    // Timer: 60 minutes
+    let time = 60 * 60;
     setInterval(() => {
         time--;
         if (time < 0) time = 0;
@@ -689,7 +676,6 @@
         document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     }, 1000);
 
-    // ----- INITIAL RENDER -----
     function init() {
         setupTabs();
         document.querySelector('.tab[data-section="0"]').classList.add('active');
@@ -701,7 +687,6 @@
 
     init();
 
-    // Expose functions globally
     window.saveNext = saveNext;
     window.markReview = markReview;
     window.clearResponse = clearResponse;
