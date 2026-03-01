@@ -125,6 +125,13 @@
         .btn-blue:hover { background: #2980b9; }
         .btn-green { background: #27ae60; color: white; }
         .btn-green:hover { background: #219150; }
+        /* Disabled submit button style */
+        .btn-green:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+            background: #95a5a6; 
+            pointer-events: none; 
+        }
 
         .section-divider { font-size: 0.7rem; text-align: center; margin: 5px 0; color: #555; }
 
@@ -165,7 +172,7 @@
 
         <div class="question-meta">
             <span id="q-num-display"><strong>Question No. 1 (NAT)</strong></span>
-            <span id="marks-display">Marks: 4 | Neg: 0</span> <!-- Default updated later -->
+            <span id="marks-display">Marks: 4 | Neg: 0</span>
         </div>
 
         <div id="question-content">
@@ -214,10 +221,9 @@
         <button class="btn btn-gray" onclick="clearResponse()">Clear Response</button>
     </div>
     <div>
-        <!-- Previous button -->
         <button class="btn btn-gray" onclick="previousQuestion()">Previous</button>
         <button class="btn btn-blue" onclick="saveNext()">Save & Next</button>
-        <button class="btn btn-green" onclick="submitTest()">Submit</button>
+        <button class="btn btn-green" id="submitBtn" onclick="submitTest()" disabled>Submit</button>
     </div>
 </footer>
 
@@ -427,6 +433,153 @@
 
     let currentObjectUrl = null;
 
+    // Timer global variable & auto-submit flag
+    let time = 60 * 60; // 60 minutes in seconds
+    let autoSubmitted = false;
+    let notVisitedCount = 44; // will be updated dynamically
+
+    // Reference to submit button
+    const submitBtn = document.getElementById('submitBtn');
+
+    // ========== CORRECT ANSWERS FROM CEED 2025 ANSWER KEY ==========
+    const correctAnswers = Array(TOTAL_QS).fill(null).map((_, idx) => {
+        const qNum = idx + 1;
+        // NAT (1-8)
+        if (qNum <= 8) {
+            const natValues = [20, 10, 90, 110, 48, 96, 30, 41.4];
+            return {
+                type: 'NAT',
+                correct: natValues[idx],
+                marks: 4,
+                neg: 0
+            };
+        }
+        // MSQ (9-18)
+        else if (qNum <= 18) {
+            const msqKeys = [
+                [0,1,2],   // Q9: A,B,C  -> indices 0,1,2
+                [1,3],     // Q10: B,D    -> 1,3
+                [0,3],     // Q11: A,D    -> 0,3
+                [0,1],     // Q12: A,B    -> 0,1
+                [0,2,3],   // Q13: A,C,D  -> 0,2,3
+                [0,2],     // Q14: A,C    -> 0,2
+                [1,2],     // Q15: B,C    -> 1,2
+                [1,3],     // Q16: B,D    -> 1,3
+                [0,3],     // Q17: A,D    -> 0,3
+                [2,3]      // Q18: C,D    -> 2,3
+            ];
+            const msqIndex = qNum - 9; // 0..9
+            return {
+                type: 'MSQ',
+                correct: msqKeys[msqIndex],
+                marks: 4,
+                neg: -1
+            };
+        }
+        // MCQ (19-44)
+        else {
+            const mcqLetters = [
+                'B','B','B','A','B','C','B','C','B','B','A','B','B','D','D','A','C','B','D','A','C','C','C','C','C','A'
+            ];
+            // Map letter to index: A=0, B=1, C=2, D=3
+            const letterToIndex = { 'A':0, 'B':1, 'C':2, 'D':3 };
+            const mcqIndex = qNum - 19; // 0..25
+            const correctLetter = mcqLetters[mcqIndex];
+            return {
+                type: 'MCQ',
+                correct: letterToIndex[correctLetter],
+                marks: 3,
+                neg: -0.5
+            };
+        }
+    });
+
+    // ========== SCORING FUNCTION ==========
+    function evaluateTest() {
+        let totalScore = 0;
+        for (let i = 0; i < TOTAL_QS; i++) {
+            const qNum = i + 1;
+            const userAns = responses[i];
+            const correct = correctAnswers[i];
+            if (!correct) continue;
+
+            if (userAns === null || userAns === '') {
+                // unattempted: 0 marks
+                continue;
+            }
+
+            if (correct.type === 'NAT') {
+                // Numeric comparison (allow floating)
+                if (parseFloat(userAns) === correct.correct) {
+                    totalScore += correct.marks;
+                }
+                // no negative
+            }
+            else if (correct.type === 'MCQ') {
+                if (parseInt(userAns, 10) === correct.correct) {
+                    totalScore += correct.marks;
+                } else {
+                    totalScore += correct.neg; // negative marking
+                }
+            }
+            else if (correct.type === 'MSQ') {
+                // userAns is a comma-separated string of selected indices, e.g., "0,2"
+                const selected = userAns ? userAns.split(',').map(Number).sort() : [];
+                const correctSorted = [...correct.correct].sort();
+                // Compare arrays
+                if (selected.length === correctSorted.length && selected.every((val, idx) => val === correctSorted[idx])) {
+                    totalScore += correct.marks;
+                } else {
+                    totalScore += correct.neg; // wrong answer penalty
+                }
+            }
+        }
+        return totalScore;
+    }
+
+    // ========== SUBMIT & AUTO-SUBMIT ==========
+    function submitTest() {
+        if (autoSubmitted) return; // already submitted
+        // Capture answer from current question before evaluation
+        captureCurrentAnswer();
+
+        if (confirm("Are you sure you want to submit your CEED Mock Test?")) {
+            autoSubmitted = true; // prevent double submit
+            const score = evaluateTest();
+            alert(`You scored ${score.toFixed(2)} out of 150.`);
+            console.log("Responses:", responses);
+            console.log("Total score:", score);
+            submitBtn.disabled = true; // keep disabled after submit
+            // Optionally disable further interaction
+        }
+    }
+
+    function autoSubmitTest() {
+        if (autoSubmitted) return;
+        autoSubmitted = true;
+        captureCurrentAnswer(); // ensure latest answer saved
+        const score = evaluateTest();
+        alert(`⏰ Time's up! Test submitted automatically.\nYou scored ${score.toFixed(2)} out of 150.`);
+        console.log("AUTO-SUBMIT at time 00:00. Responses:", responses);
+        console.log("Total score:", score);
+        if (submitBtn) submitBtn.disabled = true;
+    }
+
+    // Enable/disable submit based on notVisitedCount or time
+    function updateSubmitButtonState() {
+        if (!submitBtn) return;
+        if (autoSubmitted) {
+            submitBtn.disabled = true;
+            return;
+        }
+        // Enable if no unvisited questions OR time is over
+        if (notVisitedCount === 0 || time <= 0) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+
     function getSectionByQNum(qNum) {
         if (qNum <= 8) return 0;
         else if (qNum <= 18) return 1;
@@ -598,15 +751,21 @@
     function updateStats() {
         const answeredCount = responses.filter(r => r !== null && r !== "").length;
         const notAnsweredCount = visited.filter((v, i) => v && (responses[i] === null || responses[i] === "") && !marked[i]).length;
-        const notVisitedCount = visited.filter(v => !v).length;
+        const notVisitedCountLocal = visited.filter(v => !v).length;
         const markedCount = marked.filter(m => m).length;
+        
+        notVisitedCount = notVisitedCountLocal;
+
         document.getElementById('stat-ans').innerText = answeredCount;
         document.getElementById('stat-not-ans').innerText = notAnsweredCount;
         document.getElementById('stat-not-vis').innerText = notVisitedCount;
         document.getElementById('stat-marked').innerText = markedCount;
+
+        updateSubmitButtonState();
     }
 
     function jumpToQuestion(n) {
+        captureCurrentAnswer(); // save before moving
         currentQ = n;
         visited[n-1] = true;
         currentSectionIdx = getSectionByQNum(n);
@@ -623,7 +782,7 @@
         if (currentQ < TOTAL_QS) {
             jumpToQuestion(currentQ + 1);
         } else {
-            renderPalette();
+            renderPalette(); // refresh palette and stats
         }
     }
 
@@ -645,13 +804,6 @@
         renderPalette();
     }
 
-    function submitTest() {
-        if (confirm("Are you sure you want to submit your CEED Mock Test?")) {
-            alert("Submission demo. Responses recorded in console.");
-            console.log("Responses:", responses);
-        }
-    }
-
     function setupTabs() {
         const tabs = document.querySelectorAll('.tab');
         tabs.forEach((tab, idx) => {
@@ -666,14 +818,21 @@
         });
     }
 
-    // Timer: 60 minutes
-    let time = 60 * 60;
+    // Timer: 60 minutes countdown
     setInterval(() => {
-        time--;
-        if (time < 0) time = 0;
+        if (time > 0) {
+            time--;
+        }
         let mins = Math.floor(time / 60);
         let secs = time % 60;
         document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+        // Auto-submit when timer reaches zero
+        if (time === 0 && !autoSubmitted) {
+            autoSubmitTest();
+        }
+
+        updateSubmitButtonState();
     }, 1000);
 
     function init() {
@@ -683,10 +842,12 @@
         visited[0] = true;
         renderQuestion();
         renderPalette();
+        updateSubmitButtonState();
     }
 
     init();
 
+    // Expose functions globally for onclick handlers
     window.saveNext = saveNext;
     window.markReview = markReview;
     window.clearResponse = clearResponse;
