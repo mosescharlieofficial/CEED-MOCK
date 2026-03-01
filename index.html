@@ -546,7 +546,7 @@
         if (confirm("Are you sure you want to submit your CEED Mock Test?")) {
             autoSubmitted = true; // prevent double submit
             const score = evaluateTest();
-            alert(`You scored ${score.toFixed(2)} out of 150.`);
+            alert(`You scored ${score.toFixed(2)} out of 150 Marks`);
             console.log("Responses:", responses);
             console.log("Total score:", score);
             submitBtn.disabled = true; // keep disabled after submit
