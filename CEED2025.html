@@ -2,11 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Disable zoom on mobile and desktop -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CEED Mock Test – Full Protection (60 min)</title>
+    <title>CEED 2025 Mock Test – 3D Preloader</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* ----- 3D LOADING OVERLAY ----- */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0f1c;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: opacity 0.8s ease;
+        }
+        .cube-container {
+            width: 120px;
+            height: 120px;
+            perspective: 600px;
+            margin-bottom: 30px;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: spin 2.5s infinite linear;
+        }
+        .cube .face {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: rgba(52, 152, 219, 0.8);
+            border: 2px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 0 15px rgba(52,152,219,0.5);
+        }
+        .cube .front  { transform: translateZ(60px); background: #3498db; }
+        .cube .back   { transform: rotateY(180deg) translateZ(60px); background: #e74c3c; }
+        .cube .right  { transform: rotateY(90deg) translateZ(60px); background: #2ecc71; }
+        .cube .left   { transform: rotateY(-90deg) translateZ(60px); background: #f1c40f; }
+        .cube .top    { transform: rotateX(90deg) translateZ(60px); background: #9b59b6; }
+        .cube .bottom { transform: rotateX(-90deg) translateZ(60px); background: #e67e22; }
+        @keyframes spin {
+            from { transform: rotateX(0deg) rotateY(0deg); }
+            to   { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        .loading-text {
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+            margin-top: 20px;
+        }
+        .loading-progress {
+            width: 280px;
+            background: #2c3e50;
+            border-radius: 30px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 8px;
+            background: #2ecc71;
+            transition: width 0.2s;
+        }
+        .loading-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #bdc3c7;
+        }
+
+        /* ----- MAIN TEST STYLES (unchanged) ----- */
         :root {
             --ceed-blue: #2c3e50;
             --ceed-gray: #ecf0f1;
@@ -16,8 +92,6 @@
             --not-visited: #ffffff;
             --current: #3498db;
         }
-
-        /* Global text selection prevention (except inputs) */
         * {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
@@ -27,15 +101,12 @@
             -webkit-user-select: auto;
             user-select: auto;
         }
-
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
             background-color: #f0f2f5; 
             overflow: hidden; 
         }
-        
-        /* Header Section */
         header { 
             background: var(--ceed-blue); color: white; padding: 10px 20px; 
             display: flex; justify-content: space-between; align-items: center;
@@ -43,817 +114,500 @@
         }
         .test-title { font-weight: bold; font-size: 1.2rem; }
         .timer { background: #000; padding: 5px 15px; border-radius: 4px; font-family: monospace; font-size: 1.2rem; color: #f1c40f; }
-
-        /* Layout */
         .main-container { display: flex; height: calc(100vh - 110px); }
-
-        /* Left Panel: Question Content */
         .question-panel { flex: 3; background: white; padding: 25px; overflow-y: auto; border-right: 1px solid #ccc; }
         .section-tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
         .tab { padding: 8px 20px; cursor: pointer; background: #eee; border: 1px solid #ccc; border-bottom: none; border-radius: 5px 5px 0 0; font-size: 0.9rem; transition: 0.2s; }
         .tab.active { background: white; border-top: 3px solid var(--current); font-weight: bold; margin-bottom: -2px; }
-
         .question-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: #555; }
         .question-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px; font-weight: 500; }
-        
-        /* Image placeholder – increased width by 50px */
         .image-placeholder { 
-            width: 100%; 
-            max-width: 550px;  /* Increased from 500px to 550px */
-            height: 300px; 
+            width: 100%; max-width: 550px; height: 300px; 
             background: #f9f9f9; border: 2px dashed #bbb; 
-            margin: 20px 0; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            color: #888;
-            overflow: hidden;
+            margin: 20px 0; display: flex; align-items: center; justify-content: center; 
+            color: #888; overflow: hidden;
         }
-        .image-placeholder img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: block;
-            pointer-events: auto;
-        }
-        .image-placeholder .fallback {
-            text-align: center;
-        }
-
-        /* Answer area - neutral container */
+        .image-placeholder img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
         .answer-area { margin-top: 25px; }
-
         .nat-input { padding: 12px; font-size: 1.2rem; width: 200px; border: 2px solid var(--ceed-blue); border-radius: 4px; }
         .msq-group, .mcq-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .msq-group label, .mcq-group label { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px; background: white; border-radius: 4px; border: 1px solid #ccc; }
-        .msq-group input[type="checkbox"] { width: 18px; height: 18px; }
-        .mcq-group input[type="radio"] { width: 18px; height: 18px; }
-
-        /* Right Panel: Status & Palette */
         .sidebar { flex: 1; background: #e9eff5; padding: 15px; display: flex; flex-direction: column; border-left: 1px solid #ccc; }
         .user-profile { display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ccc; }
         .user-profile img { width: 50px; height: 50px; border-radius: 5px; background: #ddd; }
-        
-        /* Status Legend */
         .status-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.75rem; margin-bottom: 15px; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .status-box { width: 30px; height: 25px; border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white; border-radius: 3px; }
-        
-        /* Palette Colors */
         .bg-ans { background: var(--answered); }
         .bg-not-ans { background: var(--not-answered); }
         .bg-marked { background: var(--marked); border-radius: 50% !important; }
         .bg-visited { background: white; color: black; }
-
         .palette-container { background: #fff; border: 1px solid #ccc; padding: 10px; flex-grow: 1; overflow-y: auto; }
         .palette-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .palette-btn { 
-            height: 40px; display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; border: 1px solid #ccc; font-weight: bold; transition: 0.2s;
-        }
+        .palette-btn { height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #ccc; font-weight: bold; transition: 0.2s; }
         .palette-btn.current { border: 3px solid var(--current); transform: scale(1.02); background: #e3f2fd; }
-
-        /* Footer Controls */
-        footer { 
-            height: 60px; background: white; border-top: 2px solid #ccc; 
-            display: flex; justify-content: space-between; align-items: center; padding: 0 30px;
-        }
+        footer { height: 60px; background: white; border-top: 2px solid #ccc; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; }
         .btn { padding: 10px 25px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.3s; }
         .btn-gray { background: #f1f1f1; border: 1px solid #ccc; }
-        .btn-gray:hover { background: #e0e0e0; }
         .btn-blue { background: #3498db; color: white; }
-        .btn-blue:hover { background: #2980b9; }
         .btn-green { background: #27ae60; color: white; }
-        .btn-green:hover { background: #219150; }
-        /* Disabled submit button style */
-        .btn-green:disabled { 
-            opacity: 0.5; 
-            cursor: not-allowed; 
-            background: #95a5a6; 
-            pointer-events: none; 
-        }
-
-        .section-divider { font-size: 0.7rem; text-align: center; margin: 5px 0; color: #555; }
-
-        /* Anti-screenshot overlay */
-        #screen-protector {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: black;
-            z-index: 9999;
-            display: none;
-            pointer-events: none;
-            opacity: 0.95;
-        }
-        #screen-protector.show {
-            display: block;
-        }
+        .btn-green:disabled { opacity: 0.5; cursor: not-allowed; background: #95a5a6; pointer-events: none; }
+        #screen-protector { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 9999; display: none; pointer-events: none; opacity: 0.95; }
+        #screen-protector.show { display: block; }
     </style>
 </head>
 <body>
+    <!-- 3D Preloader -->
+    <div id="preloader">
+        <div class="cube-container">
+            <div class="cube">
+                <div class="face front"><i class="fas fa-paintbrush"></i></div>
+                <div class="face back"><i class="fas fa-ruler"></i></div>
+                <div class="face right"><i class="fas fa-drafting-compass"></i></div>
+                <div class="face left"><i class="fas fa-palette"></i></div>
+                <div class="face top"><i class="fas fa-cube"></i></div>
+                <div class="face bottom"><i class="fas fa-lightbulb"></i></div>
+            </div>
+        </div>
+        <div class="loading-text">LOADING CEED 2025</div>
+        <div class="loading-progress"><div class="progress-bar" id="loadProgress"></div></div>
+        <div class="loading-status" id="loadStatus">Preloading 44 images...</div>
+    </div>
+
     <!-- Black overlay for screenshot prevention -->
     <div id="screen-protector"></div>
 
-<header>
-    <div class="test-title">CEED 2025 - Part A (44 Q)</div>
-    <div class="timer" id="timer">60:00</div>
-</header>
-
-<div class="main-container">
-    <div class="question-panel">
-        <div class="section-tabs" id="sectionTabs">
-            <div class="tab active" data-section="0">Section 1-NAT (8)</div>
-            <div class="tab" data-section="1">Section 2-MSQ (10)</div>
-            <div class="tab" data-section="2">Section 3-MCQ (26)</div>
-        </div>
-
-        <div class="question-meta">
-            <span id="q-num-display"><strong>Question No. 1 (NAT)</strong></span>
-            <span id="marks-display">Marks: 4 | Neg: 0</span>
-        </div>
-
-        <div id="question-content">
-            <p class="question-text" id="q-text">
-                [NAT] What is the shortest distance (in cm) for the red dot to reach x? (grid lines)
-            </p>
-            
-            <!-- IMAGE PLACEHOLDER: protected images loaded via blob URL -->
-            <div class="image-placeholder" id="q-image" oncontextmenu="return false;">
-                <!-- content replaced by JavaScript -->
-                <i class="fa-solid fa-border-all fa-4x"></i>
-                <p>[Loading image...]</p>
-            </div>
-
-            <!-- Dynamic answer area injected here -->
-            <div id="answer-area" class="answer-area"></div>
-        </div>
-    </div>
-
-    <div class="sidebar">
-        <div class="user-profile">
-            <img src="https://via.placeholder.com/50" alt="User">
-            <div>
-                <div style="font-size: 0.8rem; color: #666;">Candidate:</div>
-                <div style="font-weight: bold;">User Name</div>
-            </div>
-        </div>
-
-        <div class="status-legend">
-            <div class="legend-item"><div class="status-box bg-ans" id="stat-ans">0</div> Answered</div>
-            <div class="legend-item"><div class="status-box bg-not-ans" id="stat-not-ans">1</div> Not Answered</div>
-            <div class="legend-item"><div class="status-box bg-visited" id="stat-not-vis">44</div> Not Visited</div>
-            <div class="legend-item"><div class="status-box bg-marked" id="stat-marked">0</div> Marked</div>
-        </div>
-
-        <div class="palette-container">
-            <div style="font-weight: bold; margin-bottom: 10px; font-size: 0.9rem;" id="palette-heading">Question Palette (NAT)</div>
-            <div class="palette-grid" id="palette"></div>
-        </div>
-    </div>
-</div>
-
-<footer>
-    <div>
-        <button class="btn btn-gray" onclick="markReview()">Mark for Review & Next</button>
-        <button class="btn btn-gray" onclick="clearResponse()">Clear Response</button>
-    </div>
-    <div>
-        <button class="btn btn-gray" onclick="previousQuestion()">Previous</button>
-        <button class="btn btn-blue" onclick="saveNext()">Save & Next</button>
-        <button class="btn btn-green" id="submitBtn" onclick="submitTest()" disabled>Submit</button>
-    </div>
-</footer>
-
-<script>
-    // ==================== ADDITIONAL PROTECTIONS ====================
-    // 1. Disable pinch zoom and Ctrl+wheel zoom
-    document.addEventListener('wheel', function(e) {
-        if (e.ctrlKey) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-    document.addEventListener('gesturestart', function(e) {
-        e.preventDefault();
-    });
-
-    // 2. Warn before page reload/close (prevent accidental progress loss)
-    window.addEventListener('beforeunload', function (e) {
-        e.preventDefault();
-        e.returnValue = 'Are you sure you want to reload? Your progress will be lost.';
-        return 'Are you sure you want to reload? Your progress will be lost.';
-    });
-
-    // ==================== SIREN SOUND SYSTEM ====================
-    (function() {
-        let audioContext = null;
-        // For short burst siren
-        let playShortSiren = null;
-        // For continuous loop
-        let loopActive = false;
-        let loopGain = null;
-        let loopOscillators = [];
-
-        // Initialize audio on first user click (to comply with autoplay policies)
-        function initAudio() {
-            if (audioContext) return;
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Short burst siren (0.5 sec)
-            playShortSiren = function() {
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => createShortSiren());
-                } else {
-                    createShortSiren();
-                }
-            };
-            function createShortSiren() {
-                const now = audioContext.currentTime;
-                const osc1 = audioContext.createOscillator();
-                const osc2 = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                osc1.type = 'sawtooth';
-                osc2.type = 'sawtooth';
-                osc1.frequency.value = 800;
-                osc2.frequency.value = 1000;
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-                osc1.connect(gainNode);
-                osc2.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                osc1.start(now);
-                osc2.start(now);
-                osc1.stop(now + 0.5);
-                osc2.stop(now + 0.5);
-            }
-
-            // Continuous loop function
-            window.startContinuousSiren = function() {
-                if (!audioContext) return;
-                if (loopActive) return;
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        createContinuousSiren();
-                    });
-                } else {
-                    createContinuousSiren();
-                }
-            };
-
-            window.stopContinuousSiren = function() {
-                if (!loopActive) return;
-                loopActive = false;
-                // Stop all oscillators
-                loopOscillators.forEach(osc => {
-                    try { osc.stop(); } catch (e) {}
-                });
-                loopOscillators = [];
-                if (loopGain) {
-                    loopGain.disconnect();
-                    loopGain = null;
-                }
-            };
-
-            function createContinuousSiren() {
-                if (loopActive) return;
-                loopActive = true;
-                
-                // Create a gain node for volume control
-                loopGain = audioContext.createGain();
-                loopGain.gain.setValueAtTime(0.1, audioContext.currentTime);
-                loopGain.connect(audioContext.destination);
-
-                // Create two oscillators for a siren-like effect
-                const osc1 = audioContext.createOscillator();
-                const osc2 = audioContext.createOscillator();
-                osc1.type = 'sawtooth';
-                osc2.type = 'sawtooth';
-                osc1.frequency.value = 800;
-                osc2.frequency.value = 1000;
-                
-                osc1.connect(loopGain);
-                osc2.connect(loopGain);
-                
-                osc1.start();
-                osc2.start();
-                
-                loopOscillators = [osc1, osc2];
-            }
-
-            // Remove the click listener once initialized
-            document.removeEventListener('click', initAudio);
-        }
-        document.addEventListener('click', initAudio);
-
-        // Function to trigger short siren (for key presses, right-click, etc.)
-        function triggerShortSiren() {
-            if (playShortSiren) {
-                playShortSiren();
-            }
-        }
-
-        // ==================== CHEAT DETECTION ====================
-        const protector = document.getElementById('screen-protector');
-
-        // Disable all keys except numbers – with short siren
-        document.addEventListener('keydown', function(e) {
-            const key = e.key;
-            const isDigit = (key >= '0' && key <= '9') || key.startsWith('Numpad');
-            if (!isDigit) {
-                e.preventDefault();
-                e.stopPropagation();
-                triggerShortSiren();
-            }
-        });
-
-        // Right-click prevention – with short siren
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            triggerShortSiren();
-            return false;
-        });
-
-        // Window/tab switch detection – continuous siren
-        window.addEventListener('blur', () => {
-            protector.classList.add('show');
-            if (window.startContinuousSiren) window.startContinuousSiren();
-        });
-        window.addEventListener('focus', () => {
-            protector.classList.remove('show');
-            if (window.stopContinuousSiren) window.stopContinuousSiren();
-        });
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                protector.classList.add('show');
-                if (window.startContinuousSiren) window.startContinuousSiren();
-            } else {
-                protector.classList.remove('show');
-                if (window.stopContinuousSiren) window.stopContinuousSiren();
-            }
-        });
-
-        // PrintScreen and screenshot shortcuts – short siren + black overlay
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
-                e.preventDefault();
-                protector.classList.add('show');
-                triggerShortSiren();
-                setTimeout(() => protector.classList.remove('show'), 500);
-            }
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
-                e.preventDefault();
-                protector.classList.add('show');
-                triggerShortSiren();
-                setTimeout(() => protector.classList.remove('show'), 500);
-            }
-        });
-
-        // Copy/cut/paste – short siren
-        document.addEventListener('copy', (e) => { e.preventDefault(); triggerShortSiren(); });
-        document.addEventListener('cut', (e) => { e.preventDefault(); triggerShortSiren(); });
-        document.addEventListener('paste', (e) => { e.preventDefault(); triggerShortSiren(); });
-    })();
-
-    // ==================== MAIN APP CODE ====================
-    const sections = [
-        { name: 'NAT', count: 8, start: 1, end: 8 },
-        { name: 'MSQ', count: 10, start: 9, end: 18 },
-        { name: 'MCQ', count: 26, start: 19, end: 44 }
-    ];
-    const TOTAL_QS = 44;
-
-    let currentQ = 1;
-    let currentSectionIdx = 0;
-    let responses = new Array(TOTAL_QS).fill(null);
-    let marked = new Array(TOTAL_QS).fill(false);
-    let visited = new Array(TOTAL_QS).fill(false);
-    visited[0] = true;
-
-    let currentObjectUrl = null;
-
-    // Timer global variable & auto-submit flag
-    let time = 60 * 60; // 60 minutes in seconds
-    let autoSubmitted = false;
-    let notVisitedCount = 44; // will be updated dynamically
-
-    // Reference to submit button
-    const submitBtn = document.getElementById('submitBtn');
-
-    // ========== CORRECT ANSWERS FROM CEED 2025 ANSWER KEY ==========
-    const correctAnswers = Array(TOTAL_QS).fill(null).map((_, idx) => {
-        const qNum = idx + 1;
-        // NAT (1-8)
-        if (qNum <= 8) {
-            const natValues = [20, 10, 90, 110, 48, 96, 30, 41.4];
-            return {
-                type: 'NAT',
-                correct: natValues[idx],
-                marks: 4,
-                neg: 0
-            };
-        }
-        // MSQ (9-18)
-        else if (qNum <= 18) {
-            const msqKeys = [
-                [0,1,2],   // Q9: A,B,C  -> indices 0,1,2
-                [1,3],     // Q10: B,D    -> 1,3
-                [0,3],     // Q11: A,D    -> 0,3
-                [0,1],     // Q12: A,B    -> 0,1
-                [0,2,3],   // Q13: A,C,D  -> 0,2,3
-                [0,2],     // Q14: A,C    -> 0,2
-                [1,2],     // Q15: B,C    -> 1,2
-                [1,3],     // Q16: B,D    -> 1,3
-                [0,3],     // Q17: A,D    -> 0,3
-                [2,3]      // Q18: C,D    -> 2,3
-            ];
-            const msqIndex = qNum - 9; // 0..9
-            return {
-                type: 'MSQ',
-                correct: msqKeys[msqIndex],
-                marks: 4,
-                neg: -1
-            };
-        }
-        // MCQ (19-44)
-        else {
-            const mcqLetters = [
-                'B','B','B','A','B','C','B','C','B','B','A','B','B','D','D','A','C','B','D','A','C','C','C','C','C','A'
-            ];
-            // Map letter to index: A=0, B=1, C=2, D=3
-            const letterToIndex = { 'A':0, 'B':1, 'C':2, 'D':3 };
-            const mcqIndex = qNum - 19; // 0..25
-            const correctLetter = mcqLetters[mcqIndex];
-            return {
-                type: 'MCQ',
-                correct: letterToIndex[correctLetter],
-                marks: 3,
-                neg: -0.5
-            };
-        }
-    });
-
-    // ========== SCORING FUNCTION ==========
-    function evaluateTest() {
-        let totalScore = 0;
-        for (let i = 0; i < TOTAL_QS; i++) {
-            const qNum = i + 1;
-            const userAns = responses[i];
-            const correct = correctAnswers[i];
-            if (!correct) continue;
-
-            if (userAns === null || userAns === '') {
-                // unattempted: 0 marks
-                continue;
-            }
-
-            if (correct.type === 'NAT') {
-                // Numeric comparison (allow floating)
-                if (parseFloat(userAns) === correct.correct) {
-                    totalScore += correct.marks;
-                }
-                // no negative
-            }
-            else if (correct.type === 'MCQ') {
-                if (parseInt(userAns, 10) === correct.correct) {
-                    totalScore += correct.marks;
-                } else {
-                    totalScore += correct.neg; // negative marking
-                }
-            }
-            else if (correct.type === 'MSQ') {
-                // userAns is a comma-separated string of selected indices, e.g., "0,2"
-                const selected = userAns ? userAns.split(',').map(Number).sort() : [];
-                const correctSorted = [...correct.correct].sort();
-                // Compare arrays
-                if (selected.length === correctSorted.length && selected.every((val, idx) => val === correctSorted[idx])) {
-                    totalScore += correct.marks;
-                } else {
-                    totalScore += correct.neg; // wrong answer penalty
-                }
-            }
-        }
-        return totalScore;
-    }
-
-    // ========== SUBMIT & AUTO-SUBMIT ==========
-    function submitTest() {
-        if (autoSubmitted) return; // already submitted
-        // Capture answer from current question before evaluation
-        captureCurrentAnswer();
-
-        if (confirm("Are you sure you want to submit your CEED Mock Test?")) {
-            autoSubmitted = true; // prevent double submit
-            const score = evaluateTest();
-            alert(`You scored ${score.toFixed(2)} out of 150 Marks`);
-            console.log("Responses:", responses);
-            console.log("Total score:", score);
-            submitBtn.disabled = true; // keep disabled after submit
-            // Optionally disable further interaction
-        }
-    }
-
-    function autoSubmitTest() {
-        if (autoSubmitted) return;
-        autoSubmitted = true;
-        captureCurrentAnswer(); // ensure latest answer saved
-        const score = evaluateTest();
-        alert(`⏰ Time's up! Test submitted automatically.\nYou scored ${score.toFixed(2)} out of 150.`);
-        console.log("AUTO-SUBMIT at time 00:00. Responses:", responses);
-        console.log("Total score:", score);
-        if (submitBtn) submitBtn.disabled = true;
-    }
-
-    // Enable/disable submit based on notVisitedCount or time
-    function updateSubmitButtonState() {
-        if (!submitBtn) return;
-        if (autoSubmitted) {
-            submitBtn.disabled = true;
-            return;
-        }
-        // Enable if no unvisited questions OR time is over
-        if (notVisitedCount === 0 || time <= 0) {
-            submitBtn.disabled = false;
-        } else {
-            submitBtn.disabled = true;
-        }
-    }
-
-    function getSectionByQNum(qNum) {
-        if (qNum <= 8) return 0;
-        else if (qNum <= 18) return 1;
-        else return 2;
-    }
-
-    function updateQuestionImage() {
-        const imgContainer = document.getElementById('q-image');
-        if (!imgContainer) return;
-
-        if (currentObjectUrl) {
-            URL.revokeObjectURL(currentObjectUrl);
-            currentObjectUrl = null;
-        }
-
-        const imgPath = `2025/${currentQ}.png`;
-        
-        imgContainer.innerHTML = `<i class="fa-solid fa-border-all fa-4x"></i><p>[Loading image...]</p>`;
-
-        fetch(imgPath)
-            .then(response => {
-                if (!response.ok) throw new Error('Image not found');
-                return response.blob();
-            })
-            .then(blob => {
-                const objectUrl = URL.createObjectURL(blob);
-                currentObjectUrl = objectUrl;
-
-                const img = new Image();
-                img.onload = function() {
-                    imgContainer.innerHTML = '';
-                    imgContainer.appendChild(img);
-                    img.setAttribute('draggable', 'false');
-                    img.oncontextmenu = (e) => { e.preventDefault(); return false; };
-                    img.style.pointerEvents = 'auto';
-                };
-                img.onerror = function() {
-                    imgContainer.innerHTML = `
-                        <div class="fallback" oncontextmenu="return false;">
-                            <i class="fa-solid fa-border-all fa-4x"></i>
-                            <p>Failed to load image</p>
-                        </div>
-                    `;
-                };
-                img.src = objectUrl;
-                img.alt = `Question ${currentQ} diagram`;
-                img.draggable = false;
-                img.oncontextmenu = (e) => { e.preventDefault(); return false; };
-            })
-            .catch(error => {
-                imgContainer.innerHTML = `
-                    <div class="fallback" oncontextmenu="return false;">
-                        <i class="fa-solid fa-border-all fa-4x"></i>
-                        <p>Image not found (${imgPath})</p>
-                        <small>Please check folder '2025'</small>
+    <!-- Main Test UI (initially hidden) -->
+    <div id="testApp" style="display: none;">
+        <header>
+            <div class="test-title">CEED 2025 - Part A (44 Q)</div>
+            <div class="timer" id="timer">60:00</div>
+        </header>
+        <div class="main-container">
+            <div class="question-panel">
+                <div class="section-tabs" id="sectionTabs">
+                    <div class="tab active" data-section="0">Section 1-NAT (8)</div>
+                    <div class="tab" data-section="1">Section 2-MSQ (10)</div>
+                    <div class="tab" data-section="2">Section 3-MCQ (26)</div>
+                </div>
+                <div class="question-meta">
+                    <span id="q-num-display"><strong>Question No. 1 (NAT)</strong></span>
+                    <span id="marks-display">Marks: 4 | Neg: 0</span>
+                </div>
+                <div id="question-content">
+                    <p class="question-text" id="q-text">[NAT] What is the shortest distance (in cm) for the red dot to reach x? (grid lines)</p>
+                    <div class="image-placeholder" id="q-image" oncontextmenu="return false;">
+                        <i class="fa-solid fa-border-all fa-4x"></i><p>[Image will appear]</p>
                     </div>
-                `;
+                    <div id="answer-area" class="answer-area"></div>
+                </div>
+            </div>
+            <div class="sidebar">
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/50" alt="User">
+                    <div><div style="font-size: 0.8rem; color: #666;">Candidate:</div><div style="font-weight: bold;">User Name</div></div>
+                </div>
+                <div class="status-legend">
+                    <div class="legend-item"><div class="status-box bg-ans" id="stat-ans">0</div> Answered</div>
+                    <div class="legend-item"><div class="status-box bg-not-ans" id="stat-not-ans">1</div> Not Answered</div>
+                    <div class="legend-item"><div class="status-box bg-visited" id="stat-not-vis">44</div> Not Visited</div>
+                    <div class="legend-item"><div class="status-box bg-marked" id="stat-marked">0</div> Marked</div>
+                </div>
+                <div class="palette-container">
+                    <div style="font-weight: bold; margin-bottom: 10px; font-size: 0.9rem;" id="palette-heading">Question Palette (NAT)</div>
+                    <div class="palette-grid" id="palette"></div>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <div>
+                <button class="btn btn-gray" onclick="markReview()">Mark for Review & Next</button>
+                <button class="btn btn-gray" onclick="clearResponse()">Clear Response</button>
+            </div>
+            <div>
+                <button class="btn btn-gray" onclick="previousQuestion()">Previous</button>
+                <button class="btn btn-blue" onclick="saveNext()">Save & Next</button>
+                <button class="btn btn-green" id="submitBtn" onclick="submitTest()" disabled>Submit</button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ==================== PRELOAD ALL 44 IMAGES ====================
+        const TOTAL_IMAGES = 44;
+        let imagesLoaded = 0;
+        const imageCache = new Array(TOTAL_IMAGES + 1); // index by question number (1..44)
+        let preloadComplete = false;
+
+        function updateProgress() {
+            const percent = (imagesLoaded / TOTAL_IMAGES) * 100;
+            document.getElementById('loadProgress').style.width = percent + '%';
+            document.getElementById('loadStatus').innerText = `Loaded ${imagesLoaded} of ${TOTAL_IMAGES} images`;
+            if (imagesLoaded === TOTAL_IMAGES) {
+                document.getElementById('loadStatus').innerText = 'Complete! Starting test...';
+                setTimeout(() => {
+                    document.getElementById('preloader').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('preloader').style.display = 'none';
+                        document.getElementById('testApp').style.display = 'block';
+                        initTest(); // start the test after preloader
+                    }, 800);
+                }, 300);
+            }
+        }
+
+        function preloadImage(qNum) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    imageCache[qNum] = img; // store the Image object
+                    imagesLoaded++;
+                    updateProgress();
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`Failed to load image for Q${qNum}`);
+                    // Still count as loaded to avoid blocking, but store null
+                    imageCache[qNum] = null;
+                    imagesLoaded++;
+                    updateProgress();
+                    resolve();
+                };
+                img.src = `2025/${qNum}.png`;
+                img.draggable = false;
+                img.oncontextmenu = (e) => e.preventDefault();
             });
-    }
-
-    function renderQuestion() {
-        const qNum = currentQ;
-        const secIdx = getSectionByQNum(qNum);
-        const section = sections[secIdx];
-        const qWithin = qNum - section.start + 1;
-
-        document.getElementById('q-num-display').innerHTML = `<strong>Question No. ${qNum} (${section.name} ${qWithin}/${section.count})</strong>`;
-
-        let baseText = '';
-        let marksDisplay = '';
-        if (section.name === 'NAT') {
-            baseText = `[NAT ${qWithin}] What is the numerical answer? (grid / geometry problem)`;
-            marksDisplay = 'Marks: 4 | Neg: 0';
-        } else if (section.name === 'MSQ') {
-            baseText = `[MSQ ${qWithin}] Which of the following options are correct? (Select all that apply)`;
-            marksDisplay = 'Marks: +4 / Partial | Neg: -1';
-        } else { // MCQ
-            baseText = `[MCQ ${qWithin}] Choose the correct alternative from the following:`;
-            marksDisplay = 'Marks: 3 | Neg: -0.5';
         }
-        document.getElementById('q-text').innerText = baseText;
-        document.getElementById('marks-display').innerHTML = marksDisplay;
 
-        updateQuestionImage();
-
-        const answerContainer = document.getElementById('answer-area');
-        const savedVal = responses[qNum-1];
-
-        if (section.name === 'NAT') {
-            answerContainer.innerHTML = `<p><strong>Your Answer (numeric):</strong></p><input type="number" step="any" class="nat-input" id="nat-answer" value="${savedVal !== null && savedVal !== undefined ? savedVal : ''}" placeholder="Enter number">`;
-        } else if (section.name === 'MSQ') {
-            let html = '<p><strong>Select all that apply:</strong></p><div class="msq-group">';
-            const opts = ['Option A', 'Option B', 'Option C', 'Option D'];
-            const checkedIndices = savedVal ? savedVal.split(',').map(Number) : [];
-            for (let i = 0; i < opts.length; i++) {
-                const checked = checkedIndices.includes(i) ? 'checked' : '';
-                html += `<label><input type="checkbox" class="msq-opt" value="${i}" ${checked}> ${opts[i]}</label>`;
+        async function preloadAllImages() {
+            const promises = [];
+            for (let i = 1; i <= TOTAL_IMAGES; i++) {
+                promises.push(preloadImage(i));
             }
-            html += '</div>';
-            answerContainer.innerHTML = html;
-        } else {
-            let html = '<p><strong>Choose one:</strong></p><div class="mcq-group">';
-            const opts = ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
-            const checkedIndex = savedVal !== null && savedVal !== undefined ? parseInt(savedVal, 10) : -1;
-            for (let i = 0; i < opts.length; i++) {
-                const checked = (i === checkedIndex) ? 'checked' : '';
-                html += `<label><input type="radio" name="mcq-opt" class="mcq-opt" value="${i}" ${checked}> ${opts[i]}</label>`;
-            }
-            html += '</div>';
-            answerContainer.innerHTML = html;
+            await Promise.all(promises);
         }
-    }
 
-    function captureCurrentAnswer() {
-        const qNum = currentQ;
-        const secIdx = getSectionByQNum(qNum);
-        const section = sections[secIdx];
+        // ==================== MAIN TEST CODE (adapted to use cached images) ====================
+        const sections = [
+            { name: 'NAT', count: 8, start: 1, end: 8 },
+            { name: 'MSQ', count: 10, start: 9, end: 18 },
+            { name: 'MCQ', count: 26, start: 19, end: 44 }
+        ];
+        let currentQ = 1;
+        let currentSectionIdx = 0;
+        let responses = new Array(TOTAL_IMAGES).fill(null);
+        let marked = new Array(TOTAL_IMAGES).fill(false);
+        let visited = new Array(TOTAL_IMAGES).fill(false);
+        let time = 60 * 60; // 60 minutes default
+        let autoSubmitted = false;
+        let notVisitedCount = TOTAL_IMAGES;
+        const submitBtn = document.getElementById('submitBtn');
 
-        if (section.name === 'NAT') {
-            const input = document.getElementById('nat-answer');
-            if (input) {
-                responses[qNum-1] = input.value !== '' ? input.value : null;
-            }
-        } else if (section.name === 'MSQ') {
-            const checkboxes = document.querySelectorAll('.msq-opt');
-            const checkedVals = [];
-            checkboxes.forEach((cb, idx) => {
-                if (cb.checked) checkedVals.push(idx);
-            });
-            responses[qNum-1] = checkedVals.length ? checkedVals.join(',') : null;
-        } else {
-            const radios = document.querySelectorAll('.mcq-opt');
-            let selectedVal = null;
-            radios.forEach(r => { if (r.checked) selectedVal = r.value; });
-            responses[qNum-1] = selectedVal;
-        }
-    }
-
-    function renderPalette() {
-        const palette = document.getElementById('palette');
-        palette.innerHTML = '';
-
-        const section = sections[currentSectionIdx];
-        document.getElementById('palette-heading').innerText = `Question Palette (${section.name})`;
-
-        for (let i = section.start; i <= section.end; i++) {
-            const btn = document.createElement('div');
-            btn.innerText = i;
-            btn.className = 'palette-btn';
-            
-            if (i === currentQ) btn.classList.add('current');
-            
-            if (marked[i-1]) {
-                btn.classList.add('bg-marked');
-            } else if (responses[i-1] !== null && responses[i-1] !== "") {
-                btn.classList.add('bg-ans');
-            } else if (visited[i-1]) {
-                btn.classList.add('bg-not-ans');
+        // Answer key (unchanged)
+        const correctAnswers = Array(TOTAL_IMAGES).fill(null).map((_, idx) => {
+            const qNum = idx + 1;
+            if (qNum <= 8) {
+                const natValues = [20, 10, 90, 110, 48, 96, 30, 41.4];
+                return { type: 'NAT', correct: natValues[idx], marks: 4, neg: 0 };
+            } else if (qNum <= 18) {
+                const msqKeys = [[0,1,2],[1,3],[0,3],[0,1],[0,2,3],[0,2],[1,2],[1,3],[0,3],[2,3]];
+                return { type: 'MSQ', correct: msqKeys[qNum-9], marks: 4, neg: -1 };
             } else {
-                btn.classList.add('bg-visited');
+                const mcqLetters = ['B','B','B','A','B','C','B','C','B','B','A','B','B','D','D','A','C','B','D','A','C','C','C','C','C','A'];
+                const letterToIndex = { 'A':0, 'B':1, 'C':2, 'D':3 };
+                return { type: 'MCQ', correct: letterToIndex[mcqLetters[qNum-19]], marks: 3, neg: -0.5 };
             }
-
-            btn.onclick = () => jumpToQuestion(i);
-            palette.appendChild(btn);
-        }
-        updateStats();
-    }
-
-    function updateStats() {
-        const answeredCount = responses.filter(r => r !== null && r !== "").length;
-        const notAnsweredCount = visited.filter((v, i) => v && (responses[i] === null || responses[i] === "") && !marked[i]).length;
-        const notVisitedCountLocal = visited.filter(v => !v).length;
-        const markedCount = marked.filter(m => m).length;
-        
-        notVisitedCount = notVisitedCountLocal;
-
-        document.getElementById('stat-ans').innerText = answeredCount;
-        document.getElementById('stat-not-ans').innerText = notAnsweredCount;
-        document.getElementById('stat-not-vis').innerText = notVisitedCount;
-        document.getElementById('stat-marked').innerText = markedCount;
-
-        updateSubmitButtonState();
-    }
-
-    function jumpToQuestion(n) {
-        captureCurrentAnswer(); // save before moving
-        currentQ = n;
-        visited[n-1] = true;
-        currentSectionIdx = getSectionByQNum(n);
-        document.querySelectorAll('.tab').forEach((tab, idx) => {
-            if (idx === currentSectionIdx) tab.classList.add('active');
-            else tab.classList.remove('active');
         });
-        renderQuestion();
-        renderPalette();
-    }
 
-    function saveNext() {
-        captureCurrentAnswer();
-        if (currentQ < TOTAL_QS) {
-            jumpToQuestion(currentQ + 1);
-        } else {
-            renderPalette(); // refresh palette and stats
+        function evaluateTest() {
+            let totalScore = 0;
+            for (let i = 0; i < TOTAL_IMAGES; i++) {
+                const userAns = responses[i];
+                const correct = correctAnswers[i];
+                if (!correct || userAns === null || userAns === '') continue;
+                if (correct.type === 'NAT') {
+                    if (parseFloat(userAns) === correct.correct) totalScore += correct.marks;
+                } else if (correct.type === 'MCQ') {
+                    if (parseInt(userAns,10) === correct.correct) totalScore += correct.marks;
+                    else totalScore += correct.neg;
+                } else if (correct.type === 'MSQ') {
+                    const selected = userAns ? userAns.split(',').map(Number).sort() : [];
+                    const correctSorted = [...correct.correct].sort();
+                    if (selected.length === correctSorted.length && selected.every((v,i)=>v===correctSorted[i]))
+                        totalScore += correct.marks;
+                    else totalScore += correct.neg;
+                }
+            }
+            return totalScore;
         }
-    }
 
-    function previousQuestion() {
-        captureCurrentAnswer();
-        if (currentQ > 1) {
-            jumpToQuestion(currentQ - 1);
+        function submitTest() {
+            if (autoSubmitted) return;
+            captureCurrentAnswer();
+            if (confirm("Are you sure you want to submit your CEED Mock Test?")) {
+                autoSubmitted = true;
+                const score = evaluateTest();
+                alert(`You scored ${score.toFixed(2)} out of 150 Marks`);
+                submitBtn.disabled = true;
+            }
         }
-    }
 
-    function markReview() {
-        marked[currentQ-1] = !marked[currentQ-1];
-        saveNext();
-    }
+        function autoSubmitTest() {
+            if (autoSubmitted) return;
+            autoSubmitted = true;
+            captureCurrentAnswer();
+            const score = evaluateTest();
+            alert(`⏰ Time's up! Test submitted automatically.\nYou scored ${score.toFixed(2)} out of 150.`);
+            if (submitBtn) submitBtn.disabled = true;
+        }
 
-    function clearResponse() {
-        responses[currentQ-1] = null;
-        renderQuestion();
-        renderPalette();
-    }
+        function updateSubmitButtonState() {
+            if (!submitBtn || autoSubmitted) { if(submitBtn) submitBtn.disabled = true; return; }
+            submitBtn.disabled = !(notVisitedCount === 0 || time <= 0);
+        }
 
-    function setupTabs() {
-        const tabs = document.querySelectorAll('.tab');
-        tabs.forEach((tab, idx) => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetSectionIdx = idx;
-                const firstQ = sections[targetSectionIdx].start;
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                jumpToQuestion(firstQ);
+        function getSectionByQNum(qNum) {
+            if (qNum <= 8) return 0;
+            else if (qNum <= 18) return 1;
+            else return 2;
+        }
+
+        // Use cached image instead of fetching
+        function updateQuestionImage() {
+            const imgContainer = document.getElementById('q-image');
+            if (!imgContainer) return;
+            const cachedImg = imageCache[currentQ];
+            if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+                imgContainer.innerHTML = '';
+                const clonedImg = cachedImg.cloneNode(true);
+                clonedImg.oncontextmenu = (e) => e.preventDefault();
+                imgContainer.appendChild(clonedImg);
+            } else {
+                imgContainer.innerHTML = `<div class="fallback"><i class="fa-solid fa-border-all fa-4x"></i><p>Image not available</p></div>`;
+            }
+        }
+
+        function renderQuestion() {
+            const qNum = currentQ;
+            const secIdx = getSectionByQNum(qNum);
+            const section = sections[secIdx];
+            const qWithin = qNum - section.start + 1;
+            document.getElementById('q-num-display').innerHTML = `<strong>Question No. ${qNum} (${section.name} ${qWithin}/${section.count})</strong>`;
+            let baseText = '', marksDisplay = '';
+            if (section.name === 'NAT') {
+                baseText = `[NAT ${qWithin}] What is the numerical answer? (grid / geometry problem)`;
+                marksDisplay = 'Marks: 4 | Neg: 0';
+            } else if (section.name === 'MSQ') {
+                baseText = `[MSQ ${qWithin}] Which of the following options are correct? (Select all that apply)`;
+                marksDisplay = 'Marks: +4 / Partial | Neg: -1';
+            } else {
+                baseText = `[MCQ ${qWithin}] Choose the correct alternative from the following:`;
+                marksDisplay = 'Marks: 3 | Neg: -0.5';
+            }
+            document.getElementById('q-text').innerText = baseText;
+            document.getElementById('marks-display').innerHTML = marksDisplay;
+            updateQuestionImage();
+            const answerContainer = document.getElementById('answer-area');
+            const savedVal = responses[qNum-1];
+            if (section.name === 'NAT') {
+                answerContainer.innerHTML = `<p><strong>Your Answer (numeric):</strong></p><input type="number" step="any" class="nat-input" id="nat-answer" value="${savedVal !== null ? savedVal : ''}" placeholder="Enter number">`;
+            } else if (section.name === 'MSQ') {
+                let html = '<p><strong>Select all that apply:</strong></p><div class="msq-group">';
+                const opts = ['Option A', 'Option B', 'Option C', 'Option D'];
+                const checkedIndices = savedVal ? savedVal.split(',').map(Number) : [];
+                for (let i=0; i<opts.length; i++) {
+                    const checked = checkedIndices.includes(i) ? 'checked' : '';
+                    html += `<label><input type="checkbox" class="msq-opt" value="${i}" ${checked}> ${opts[i]}</label>`;
+                }
+                html += '</div>';
+                answerContainer.innerHTML = html;
+            } else {
+                let html = '<p><strong>Choose one:</strong></p><div class="mcq-group">';
+                const opts = ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
+                const checkedIndex = savedVal !== null ? parseInt(savedVal,10) : -1;
+                for (let i=0; i<opts.length; i++) {
+                    const checked = (i === checkedIndex) ? 'checked' : '';
+                    html += `<label><input type="radio" name="mcq-opt" class="mcq-opt" value="${i}" ${checked}> ${opts[i]}</label>`;
+                }
+                html += '</div>';
+                answerContainer.innerHTML = html;
+            }
+        }
+
+        function captureCurrentAnswer() {
+            const qNum = currentQ;
+            const secIdx = getSectionByQNum(qNum);
+            const section = sections[secIdx];
+            if (section.name === 'NAT') {
+                const input = document.getElementById('nat-answer');
+                if (input) responses[qNum-1] = input.value !== '' ? input.value : null;
+            } else if (section.name === 'MSQ') {
+                const checkboxes = document.querySelectorAll('.msq-opt');
+                const checkedVals = [];
+                checkboxes.forEach(cb => { if(cb.checked) checkedVals.push(parseInt(cb.value)); });
+                responses[qNum-1] = checkedVals.length ? checkedVals.join(',') : null;
+            } else {
+                const radios = document.querySelectorAll('.mcq-opt');
+                let selectedVal = null;
+                radios.forEach(r => { if(r.checked) selectedVal = r.value; });
+                responses[qNum-1] = selectedVal;
+            }
+        }
+
+        function renderPalette() {
+            const palette = document.getElementById('palette');
+            palette.innerHTML = '';
+            const section = sections[currentSectionIdx];
+            document.getElementById('palette-heading').innerText = `Question Palette (${section.name})`;
+            for (let i=section.start; i<=section.end; i++) {
+                const btn = document.createElement('div');
+                btn.innerText = i;
+                btn.className = 'palette-btn';
+                if (i === currentQ) btn.classList.add('current');
+                if (marked[i-1]) btn.classList.add('bg-marked');
+                else if (responses[i-1] !== null && responses[i-1] !== "") btn.classList.add('bg-ans');
+                else if (visited[i-1]) btn.classList.add('bg-not-ans');
+                else btn.classList.add('bg-visited');
+                btn.onclick = () => jumpToQuestion(i);
+                palette.appendChild(btn);
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            const answeredCount = responses.filter(r => r !== null && r !== "").length;
+            const notAnsweredCount = visited.filter((v,i) => v && (responses[i]===null || responses[i]==="") && !marked[i]).length;
+            const notVisitedCountLocal = visited.filter(v => !v).length;
+            notVisitedCount = notVisitedCountLocal;
+            document.getElementById('stat-ans').innerText = answeredCount;
+            document.getElementById('stat-not-ans').innerText = notAnsweredCount;
+            document.getElementById('stat-not-vis').innerText = notVisitedCount;
+            document.getElementById('stat-marked').innerText = marked.filter(m=>m).length;
+            updateSubmitButtonState();
+        }
+
+        function jumpToQuestion(n) {
+            captureCurrentAnswer();
+            currentQ = n;
+            visited[n-1] = true;
+            currentSectionIdx = getSectionByQNum(n);
+            document.querySelectorAll('.tab').forEach((tab,idx) => {
+                if (idx === currentSectionIdx) tab.classList.add('active');
+                else tab.classList.remove('active');
             });
-        });
-    }
-
-    // Timer: 60 minutes countdown
-    setInterval(() => {
-        if (time > 0) {
-            time--;
-        }
-        let mins = Math.floor(time / 60);
-        let secs = time % 60;
-        document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-
-        // Auto-submit when timer reaches zero
-        if (time === 0 && !autoSubmitted) {
-            autoSubmitTest();
+            renderQuestion();
+            renderPalette();
         }
 
-        updateSubmitButtonState();
-    }, 1000);
+        function saveNext() { captureCurrentAnswer(); if (currentQ < TOTAL_IMAGES) jumpToQuestion(currentQ+1); else renderPalette(); }
+        function previousQuestion() { captureCurrentAnswer(); if (currentQ > 1) jumpToQuestion(currentQ-1); }
+        function markReview() { marked[currentQ-1] = !marked[currentQ-1]; saveNext(); }
+        function clearResponse() { responses[currentQ-1] = null; renderQuestion(); renderPalette(); }
 
-    function init() {
-        setupTabs();
-        document.querySelector('.tab[data-section="0"]').classList.add('active');
-        currentQ = 1;
-        visited[0] = true;
-        renderQuestion();
-        renderPalette();
-        updateSubmitButtonState();
-    }
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach((tab,idx) => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const firstQ = sections[idx].start;
+                    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+                    tab.classList.add('active');
+                    jumpToQuestion(firstQ);
+                });
+            });
+        }
 
-    init();
+        function initTest() {
+            visited[0] = true;
+            setupTabs();
+            renderQuestion();
+            renderPalette();
+            updateSubmitButtonState();
+            // Timer countdown
+            setInterval(() => {
+                if (time > 0 && !autoSubmitted) {
+                    time--;
+                    let mins = Math.floor(time/60), secs = time%60;
+                    document.getElementById('timer').innerText = `${mins}:${secs<10?'0':''}${secs}`;
+                    if (time === 0) autoSubmitTest();
+                    updateSubmitButtonState();
+                }
+            }, 1000);
+        }
 
-    // Expose functions globally for onclick handlers
-    window.saveNext = saveNext;
-    window.markReview = markReview;
-    window.clearResponse = clearResponse;
-    window.submitTest = submitTest;
-    window.jumpToQuestion = jumpToQuestion;
-    window.previousQuestion = previousQuestion;
-</script>
+        // ==================== ANTI-CHEAT (unchanged but moved inside) ====================
+        (function() {
+            let audioContext = null, playShortSiren = null, loopActive = false, loopGain = null, loopOscillators = [];
+            function initAudio() {
+                if (audioContext) return;
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                playShortSiren = function() {
+                    let resume = audioContext.state === 'suspended' ? audioContext.resume() : Promise.resolve();
+                    resume.then(() => {
+                        const now = audioContext.currentTime;
+                        const osc1 = audioContext.createOscillator(), osc2 = audioContext.createOscillator(), gain = audioContext.createGain();
+                        osc1.type = osc2.type = 'sawtooth';
+                        osc1.frequency.value = 800; osc2.frequency.value = 1000;
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now+0.5);
+                        osc1.connect(gain); osc2.connect(gain); gain.connect(audioContext.destination);
+                        osc1.start(now); osc2.start(now);
+                        osc1.stop(now+0.5); osc2.stop(now+0.5);
+                    });
+                };
+                window.startContinuousSiren = function() {
+                    if (!audioContext || loopActive) return;
+                    (audioContext.state === 'suspended' ? audioContext.resume() : Promise.resolve()).then(() => {
+                        if (loopActive) return;
+                        loopActive = true;
+                        loopGain = audioContext.createGain();
+                        loopGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        loopGain.connect(audioContext.destination);
+                        const osc1 = audioContext.createOscillator(), osc2 = audioContext.createOscillator();
+                        osc1.type = osc2.type = 'sawtooth';
+                        osc1.frequency.value = 800; osc2.frequency.value = 1000;
+                        osc1.connect(loopGain); osc2.connect(loopGain);
+                        osc1.start(); osc2.start();
+                        loopOscillators = [osc1, osc2];
+                    });
+                };
+                window.stopContinuousSiren = function() {
+                    if (!loopActive) return;
+                    loopActive = false;
+                    loopOscillators.forEach(osc => { try{ osc.stop(); }catch(e){} });
+                    loopOscillators = [];
+                    if (loopGain) { loopGain.disconnect(); loopGain = null; }
+                };
+                document.removeEventListener('click', initAudio);
+            }
+            document.addEventListener('click', initAudio);
+            function triggerShortSiren() { if(playShortSiren) playShortSiren(); }
+            const protector = document.getElementById('screen-protector');
+            document.addEventListener('keydown', function(e) {
+                const key = e.key;
+                const isDigit = (key >= '0' && key <= '9') || key.startsWith('Numpad');
+                if (!isDigit) { e.preventDefault(); e.stopPropagation(); triggerShortSiren(); }
+            });
+            document.addEventListener('contextmenu', (e) => { e.preventDefault(); triggerShortSiren(); return false; });
+            window.addEventListener('blur', () => { protector.classList.add('show'); if(window.startContinuousSiren) window.startContinuousSiren(); });
+            window.addEventListener('focus', () => { protector.classList.remove('show'); if(window.stopContinuousSiren) window.stopContinuousSiren(); });
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) { protector.classList.add('show'); if(window.startContinuousSiren) window.startContinuousSiren(); }
+                else { protector.classList.remove('show'); if(window.stopContinuousSiren) window.stopContinuousSiren(); }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'PrintScreen' || e.code === 'PrintScreen') { e.preventDefault(); protector.classList.add('show'); triggerShortSiren(); setTimeout(()=>protector.classList.remove('show'),500); }
+                if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) { e.preventDefault(); protector.classList.add('show'); triggerShortSiren(); setTimeout(()=>protector.classList.remove('show'),500); }
+            });
+            document.addEventListener('copy', (e) => { e.preventDefault(); triggerShortSiren(); });
+            document.addEventListener('cut', (e) => { e.preventDefault(); triggerShortSiren(); });
+            document.addEventListener('paste', (e) => { e.preventDefault(); triggerShortSiren(); });
+            document.addEventListener('wheel', (e) => { if(e.ctrlKey) e.preventDefault(); }, { passive: false });
+            document.addEventListener('gesturestart', (e) => e.preventDefault());
+            window.addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = 'Progress will be lost.'; return 'Progress will be lost.'; });
+        })();
+
+        // Start preloading
+        preloadAllImages();
+    </script>
 </body>
 </html>
